@@ -1,5 +1,5 @@
 {
   "env": {
-    "OTEL_RESOURCE_ATTRIBUTES": "project.name=pricer-rma,team.name=pricer-team,client.name=pricer"
+    "OTEL_RESOURCE_ATTRIBUTES": "project.name=,team.name=,client.name="
   }
 }
