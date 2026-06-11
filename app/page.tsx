@@ -68,7 +68,7 @@ export default async function HomePage({
 
       <div className="mx-auto max-w-6xl px-5 py-8 sm:py-10">
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-20 lg:self-start">
+          <aside className="lg:sticky lg:top-[210px] lg:self-start">
             <div className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
               Refine
             </div>

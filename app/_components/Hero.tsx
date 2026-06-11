@@ -8,7 +8,7 @@ export async function Hero({ stats }: { stats?: JobStats }) {
   const data = stats ?? (await getJobStats());
 
   return (
-    <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--background)]">
+    <section className="sticky top-[57px] z-20 overflow-hidden border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/75">
       <DotPattern />
       <div className="relative mx-auto max-w-6xl px-5 py-6 sm:py-8">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
