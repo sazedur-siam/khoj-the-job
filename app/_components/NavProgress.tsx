@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 export const NAV_PROGRESS_EVENT = "khoj:nav-progress";
 
-interface NavProgressEvent extends CustomEvent<{ pending: boolean }> {}
+type NavProgressEvent = CustomEvent<{ pending: boolean }>;
 
 export function emitNavProgress(pending: boolean): void {
   if (typeof window === "undefined") return;
@@ -13,7 +13,8 @@ export function emitNavProgress(pending: boolean): void {
   );
 }
 
-export function NavProgress() {
+/** Subscribes to the shared nav-progress event; true while a filter/pagination navigation is in flight. */
+export function useNavPending(): boolean {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -24,6 +25,12 @@ export function NavProgress() {
     window.addEventListener(NAV_PROGRESS_EVENT, onEvent);
     return () => window.removeEventListener(NAV_PROGRESS_EVENT, onEvent);
   }, []);
+
+  return pending;
+}
+
+export function NavProgress() {
+  const pending = useNavPending();
 
   return (
     <div

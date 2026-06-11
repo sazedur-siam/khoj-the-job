@@ -62,7 +62,7 @@ function ExtLink({ url, subtle = false }: { url: string; subtle?: boolean }) {
       target="_blank"
       rel="noopener noreferrer"
       className={`truncate font-mono text-xs hover:underline ${
-        subtle ? "text-[var(--foreground-subtle)]" : "text-[var(--accent)]"
+        subtle ? "text-foreground-subtle" : "text-accent"
       }`}
       title={url}
     >
@@ -87,20 +87,20 @@ export default async function SourcesPage({
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-10 sm:py-12">
-      <div className="mb-8 flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
-        <span className="inline-block h-px w-6 bg-[var(--border-strong)]" />
+      <div className="mb-8 flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-foreground-subtle">
+        <span className="inline-block h-px w-6 bg-border-strong" />
         <span>Transparency</span>
       </div>
 
-      <h1 className="font-display mb-3 text-4xl text-[var(--foreground)] sm:text-5xl">
+      <h1 className="font-display mb-3 text-4xl text-foreground sm:text-5xl">
         Where we get the data
       </h1>
-      <p className="mb-8 max-w-2xl text-sm text-[var(--foreground-muted)] sm:text-base">
+      <p className="mb-8 max-w-2xl text-sm text-foreground-muted sm:text-base">
         Government circulars are scraped daily, international boards daily, and private company
         careers pages hourly in batches of 15.
       </p>
 
-      <div className="mb-8 flex gap-1 border-b border-[var(--border)]">
+      <div className="mb-8 flex gap-1 border-b border-border">
         <TabLink href="/sources" active={tab === "endpoints"}>
           Scrape endpoints
         </TabLink>
@@ -115,10 +115,10 @@ export default async function SourcesPage({
         <CompaniesTab companies={companies} />
       )}
 
-      <div className="mt-12 border-t border-[var(--border)] pt-6">
+      <div className="mt-12 border-t border-border pt-6">
         <Link
           href="/"
-          className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-subtle)] hover:text-[var(--accent)]"
+          className="text-xs uppercase tracking-[0.18em] text-foreground-subtle hover:text-accent"
         >
           ← Back to listings
         </Link>
@@ -141,8 +141,8 @@ function TabLink({
       href={href}
       className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
         active
-          ? "border-[var(--accent)] text-[var(--foreground)]"
-          : "border-transparent text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+          ? "border-accent text-foreground"
+          : "border-transparent text-foreground-subtle hover:text-foreground"
       }`}
     >
       {children}
@@ -164,14 +164,14 @@ function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
           {GOVERNMENT_SOURCES.map((s) => (
             <li
               key={s.key}
-              className="grid grid-cols-1 gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 sm:grid-cols-[220px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
+              className="grid grid-cols-1 gap-1 rounded-md border border-border bg-surface p-3 sm:grid-cols-[220px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
             >
-              <div className="text-sm font-medium text-[var(--foreground)]">{s.name}</div>
+              <div className="text-sm font-medium text-foreground">{s.name}</div>
               <ExtLink url={s.url} />
               <div className="flex flex-col items-start gap-1 sm:items-end">
                 <StatusPill status={s.status} />
                 {s.note && (
-                  <span className="text-[10px] text-[var(--foreground-subtle)]">{s.note}</span>
+                  <span className="text-[10px] text-foreground-subtle">{s.note}</span>
                 )}
               </div>
             </li>
@@ -188,14 +188,14 @@ function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
           {INTERNATIONAL_SOURCES.map((s) => (
             <li
               key={s.key}
-              className="grid grid-cols-1 gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 sm:grid-cols-[220px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
+              className="grid grid-cols-1 gap-1 rounded-md border border-border bg-surface p-3 sm:grid-cols-[220px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
             >
-              <div className="text-sm font-medium text-[var(--foreground)]">{s.name}</div>
+              <div className="text-sm font-medium text-foreground">{s.name}</div>
               <ExtLink url={s.url} />
               <div className="flex flex-col items-start gap-1 sm:items-end">
                 <StatusPill status={s.status} />
                 {s.note && (
-                  <span className="text-[10px] text-[var(--foreground-subtle)]">{s.note}</span>
+                  <span className="text-[10px] text-foreground-subtle">{s.note}</span>
                 )}
               </div>
             </li>
@@ -208,18 +208,18 @@ function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
           title="Discovered company careers pages"
           meta={`${careersUrls.length} discovered`}
         />
-        <details className="mb-4 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm">
-          <summary className="cursor-pointer font-medium text-[var(--foreground)]">
+        <details className="mb-4 rounded-md border border-border bg-surface-2 p-4 text-sm">
+          <summary className="cursor-pointer font-medium text-foreground">
             How the private crawler discovers job postings
           </summary>
-          <ol className="mt-3 list-decimal space-y-1 pl-5 text-[var(--foreground-muted)]">
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-foreground-muted">
             {PRIVATE_CRAWL_PATH.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
         </details>
         {careersUrls.length === 0 ? (
-          <div className="rounded-md border border-dashed border-[var(--border-strong)] p-6 text-center text-sm text-[var(--foreground-subtle)]">
+          <div className="rounded-md border border-dashed border-border-strong p-6 text-center text-sm text-foreground-subtle">
             No careers pages discovered yet — they appear here after the company crawler runs.
           </div>
         ) : (
@@ -227,10 +227,10 @@ function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
             {careersUrls.map((c) => (
               <li
                 key={c._id.toString()}
-                className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3"
+                className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface p-3"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-[var(--foreground)]">
+                  <div className="truncate text-sm font-medium text-foreground">
                     {c.name}
                   </div>
                   {c.careersUrl && <ExtLink url={c.careersUrl} />}
@@ -253,15 +253,15 @@ function CompaniesTab({ companies }: { companies: CompanyRow[] }) {
         {companies.map((c) => (
           <li
             key={c._id.toString()}
-            className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-3"
+            className="rounded-md border border-border bg-surface p-3"
           >
-            <div className="truncate text-sm font-medium text-[var(--foreground)]" title={c.name}>
+            <div className="truncate text-sm font-medium text-foreground" title={c.name}>
               {c.name}
             </div>
             {c.website ? (
               <ExtLink url={c.website} />
             ) : (
-              <span className="font-mono text-xs text-[var(--foreground-subtle)]">no website</span>
+              <span className="font-mono text-xs text-foreground-subtle">no website</span>
             )}
           </li>
         ))}
@@ -272,9 +272,9 @@ function CompaniesTab({ companies }: { companies: CompanyRow[] }) {
 
 function SectionHeading({ title, meta }: { title: string; meta: string }) {
   return (
-    <div className="mb-4 flex items-end justify-between border-b border-[var(--border)] pb-2">
-      <h2 className="font-display text-2xl text-[var(--foreground)]">{title}</h2>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
+    <div className="mb-4 flex items-end justify-between border-b border-border pb-2">
+      <h2 className="font-display text-2xl text-foreground">{title}</h2>
+      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground-subtle">
         {meta}
       </span>
     </div>

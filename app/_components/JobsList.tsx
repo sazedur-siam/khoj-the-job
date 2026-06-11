@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { WithId } from "mongodb";
-import type { JobDoc } from "@/lib/db/schemas";
+import { useMemo, useState } from "react";
+import type { JobCardData } from "@/lib/db/jobs";
 import { JobCard } from "./JobCard";
 
 const PAGE_SIZE = 20;
 
-interface SerializableJob extends Omit<WithId<JobDoc>, "_id" | "postedAt" | "deadline" | "scrapedAt" | "updatedAt"> {
-  _id: string;
-  postedAt: string | null;
-  deadline: string | null;
-  scrapedAt: string;
-  updatedAt: string;
-}
-
-export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signature: string }) {
+export function JobsList({ jobs, signature }: { jobs: JobCardData[]; signature: string }) {
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  // Reset to page 1 when the filter set changes — render-time state adjustment,
+  // not an effect (https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevSignature, setPrevSignature] = useState(signature);
+  if (signature !== prevSignature) {
+    setPrevSignature(signature);
     setPage(1);
-  }, [signature]);
+  }
 
   const totalPages = Math.max(1, Math.ceil(jobs.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
@@ -32,9 +27,7 @@ export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signatu
 
   function goTo(p: number) {
     setPage(p);
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (jobs.length === 0) return null;
@@ -45,11 +38,11 @@ export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signatu
     <>
       <ul className="space-y-3">
         {visible.map((j) => (
-          <JobCard key={j._id} job={revive(j)} />
+          <JobCard key={j._id} job={j} />
         ))}
       </ul>
 
-      <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+      <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-foreground-subtle">
         Showing {(startIdx + 1).toLocaleString()}–
         {Math.min(startIdx + PAGE_SIZE, jobs.length).toLocaleString()} of{" "}
         {jobs.length.toLocaleString()}
@@ -69,7 +62,7 @@ export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signatu
               n === "…" ? (
                 <li
                   key={`gap-${i}`}
-                  className="px-1 font-mono text-xs text-[var(--foreground-subtle)]"
+                  className="px-1 font-mono text-xs text-foreground-subtle"
                   aria-hidden
                 >
                   ·
@@ -82,8 +75,8 @@ export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signatu
                     onClick={() => goTo(n)}
                     className={
                       n === clampedPage
-                        ? "inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--accent)] px-2 font-mono text-xs text-[var(--accent-foreground)]"
-                        : "inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 font-mono text-xs text-[var(--foreground-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                        ? "inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-accent bg-accent px-2 font-mono text-xs text-accent-foreground"
+                        : "inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-border bg-surface px-2 font-mono text-xs text-foreground-muted transition hover:border-accent hover:text-accent"
                     }
                   >
                     {n}
@@ -92,7 +85,7 @@ export function JobsList({ jobs, signature }: { jobs: SerializableJob[]; signatu
               )
             )}
           </ul>
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)] sm:hidden">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground-subtle sm:hidden">
             Page {clampedPage} of {totalPages}
           </span>
 
@@ -124,8 +117,8 @@ function PageBtn({
       disabled={disabled}
       className={
         disabled
-          ? "inline-flex cursor-not-allowed items-center justify-center rounded-full border border-[var(--border)] bg-transparent px-3.5 py-1.5 text-xs font-medium text-[var(--foreground-subtle)] opacity-50"
-          : "inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--foreground-muted)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+          ? "inline-flex cursor-not-allowed items-center justify-center rounded-full border border-border bg-transparent px-3.5 py-1.5 text-xs font-medium text-foreground-subtle opacity-50"
+          : "inline-flex items-center justify-center rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-foreground-muted transition hover:border-accent hover:bg-accent-soft hover:text-accent"
       }
     >
       {children}
@@ -142,29 +135,6 @@ function buildPages(current: number, total: number): Array<number | "…"> {
   if (from > 2) out.push("…");
   for (let i = from; i <= to; i++) out.push(i);
   if (to < total - 1) out.push("…");
-  if (total > 1) out.push(total);
+  out.push(total);
   return out;
-}
-
-function revive(j: SerializableJob): WithId<JobDoc> {
-  const toDate = (s: string | null) => (s ? new Date(s) : null);
-  return {
-    ...j,
-    _id: j._id as unknown as WithId<JobDoc>["_id"],
-    postedAt: toDate(j.postedAt),
-    deadline: toDate(j.deadline),
-    scrapedAt: new Date(j.scrapedAt),
-    updatedAt: new Date(j.updatedAt),
-  } as WithId<JobDoc>;
-}
-
-export function serializeJobs(jobs: WithId<JobDoc>[]): SerializableJob[] {
-  return jobs.map((j) => ({
-    ...j,
-    _id: j._id.toString(),
-    postedAt: j.postedAt instanceof Date ? j.postedAt.toISOString() : null,
-    deadline: j.deadline instanceof Date ? j.deadline.toISOString() : null,
-    scrapedAt: j.scrapedAt.toISOString(),
-    updatedAt: j.updatedAt.toISOString(),
-  }));
 }

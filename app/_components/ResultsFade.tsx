@@ -1,35 +1,24 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { NAV_PROGRESS_EVENT } from "./NavProgress";
-
-interface NavProgressEvent extends CustomEvent<{ pending: boolean }> {}
+import type { ReactNode } from "react";
+import { useNavPending } from "./NavProgress";
 
 export function ResultsFade({ children }: { children: ReactNode }) {
-  const [pending, setPending] = useState(false);
-
-  useEffect(() => {
-    function onEvent(e: Event) {
-      const ce = e as NavProgressEvent;
-      setPending(Boolean(ce.detail?.pending));
-    }
-    window.addEventListener(NAV_PROGRESS_EVENT, onEvent);
-    return () => window.removeEventListener(NAV_PROGRESS_EVENT, onEvent);
-  }, []);
+  const pending = useNavPending();
 
   return (
     <div className="relative">
       <div
         className={`transition-opacity duration-150 ${
-          pending ? "opacity-40" : "opacity-100"
-        } ${pending ? "pointer-events-none" : ""}`}
+          pending ? "pointer-events-none opacity-40" : "opacity-100"
+        }`}
         aria-busy={pending}
       >
         {children}
       </div>
       {pending && (
         <div className="pointer-events-none absolute inset-x-0 top-6 flex justify-center">
-          <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground-muted)] shadow-sm">
+          <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-foreground-muted shadow-sm">
             <Spinner />
             Loading
           </div>

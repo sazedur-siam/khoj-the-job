@@ -17,7 +17,7 @@ export function CollapsibleFilters({ children }: { children: ReactNode }) {
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="mb-3 flex w-full items-center justify-between rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--foreground)] lg:hidden"
+        className="mb-3 flex w-full items-center justify-between rounded-md border border-border bg-surface px-4 py-2.5 text-sm font-medium text-foreground lg:hidden"
       >
         <span className="flex items-center gap-2">
           <svg
@@ -40,7 +40,7 @@ export function CollapsibleFilters({ children }: { children: ReactNode }) {
             </span>
           )}
         </span>
-        <span aria-hidden className="text-[var(--foreground-subtle)]">
+        <span aria-hidden className="text-foreground-subtle">
           {open ? "▴" : "▾"}
         </span>
       </button>

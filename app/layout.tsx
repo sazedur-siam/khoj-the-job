@@ -28,10 +28,24 @@ const notoBengali = Noto_Sans_Bengali({
   preload: false,
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
-  title: "Khoj · খোঁজ — IT Jobs in Bangladesh",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Khoj · খোঁজ — IT Jobs in Bangladesh",
+    template: "%s",
+  },
   description:
     "Aggregated IT, software engineering, and programmer jobs in Bangladesh from government circulars and 130+ private software companies.",
+  openGraph: {
+    siteName: "Khoj · খোঁজ",
+    type: "website",
+  },
 };
 
 const THEME_INIT = `
@@ -52,31 +66,31 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
-      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <NavProgress />
-        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
+        <header className="sticky top-0 z-30 border-b border-border bg-(--background)/85 backdrop-blur supports-[backdrop-filter]:bg-(--background)/70">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
             <Link href="/" className="group flex items-baseline gap-2">
               <span
-                className="font-[var(--font-display)] text-2xl leading-none tracking-tight text-[var(--foreground)]"
+                className="text-2xl leading-none tracking-tight text-foreground"
                 style={{ fontFamily: "var(--font-display)" }}
               >
                 Khoj
               </span>
               <span
-                className="text-base leading-none text-[var(--foreground-subtle)] group-hover:text-[var(--accent)] transition"
+                className="text-base leading-none text-foreground-subtle group-hover:text-accent transition"
                 style={{ fontFamily: "var(--font-bengali)" }}
               >
                 খোঁজ
               </span>
-              <span className="ml-2 hidden text-xs uppercase tracking-[0.18em] text-[var(--foreground-subtle)] sm:inline">
+              <span className="ml-2 hidden text-xs uppercase tracking-[0.18em] text-foreground-subtle sm:inline">
                 IT jobs · Bangladesh
               </span>
             </Link>
             <div className="flex items-center gap-4">
               <Link
                 href="/sources"
-                className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+                className="text-xs uppercase tracking-[0.18em] text-foreground-subtle hover:text-foreground"
               >
                 Sources
               </Link>
@@ -85,8 +99,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-[var(--border)]">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-xs text-[var(--foreground-subtle)] sm:flex-row sm:items-center sm:justify-between">
+        <footer className="border-t border-border">
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-xs text-foreground-subtle sm:flex-row sm:items-center sm:justify-between">
             <div>
               Khoj <span style={{ fontFamily: "var(--font-bengali)" }}>খোঁজ</span> — aggregating BD
               gov circulars + 130 software companies. Daily refresh.

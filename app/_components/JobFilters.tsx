@@ -78,11 +78,11 @@ export function JobFilters() {
   return (
     <div className="space-y-5">
       <form onSubmit={onSubmit}>
-        <label className="flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-sm focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]">
+        <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
           <svg
             aria-hidden
             viewBox="0 0 24 24"
-            className="h-4 w-4 shrink-0 text-[var(--foreground-subtle)]"
+            className="h-4 w-4 shrink-0 text-foreground-subtle"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -95,12 +95,12 @@ export function JobFilters() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search jobs"
-            className="w-full bg-transparent text-sm placeholder:text-[var(--foreground-subtle)] focus:outline-none"
+            className="w-full bg-transparent text-sm placeholder:text-foreground-subtle focus:outline-none"
           />
           <button
             type="submit"
             disabled={isPending}
-            className="rounded-md bg-[var(--foreground)] px-3 py-1 text-xs font-medium uppercase tracking-wider text-[var(--background)] hover:opacity-90 disabled:opacity-60"
+            className="rounded-md bg-foreground px-3 py-1 text-xs font-medium uppercase tracking-wider text-background hover:opacity-90 disabled:opacity-60"
           >
             {isPending ? "…" : "Go"}
           </button>
@@ -129,7 +129,7 @@ export function JobFilters() {
       {hasActiveFilters && (
         <button
           onClick={clearAll}
-          className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-subtle)] hover:text-[var(--foreground)]"
+          className="text-xs uppercase tracking-[0.18em] text-foreground-subtle hover:text-foreground"
         >
           Clear all filters →
         </button>
@@ -148,7 +148,7 @@ interface FilterGroupProps {
 function FilterGroup({ label, items, current, onSelect }: FilterGroupProps) {
   return (
     <div>
-      <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.22em] text-foreground-subtle">
         {label}
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -160,8 +160,8 @@ function FilterGroup({ label, items, current, onSelect }: FilterGroupProps) {
               onClick={() => onSelect(f.value)}
               className={`rounded-full border px-2.5 py-1 text-xs transition ${
                 active
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)]"
-                  : "border-[var(--border)] text-[var(--foreground-muted)] hover:border-[var(--border-strong)]"
+                  ? "border-accent bg-accent text-accent-foreground"
+                  : "border-border text-foreground-muted hover:border-border-strong"
               }`}
             >
               {f.label}

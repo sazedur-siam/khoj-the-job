@@ -1,50 +1,33 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import type { CSSProperties } from "react";
 import { getJobById } from "@/lib/db/jobs";
+import { bnClass, formatDate, initials, isBengali, relativeDate, TYPE_META } from "@/lib/format";
 
 export const revalidate = 300;
 
-const BENGALI_RX = /[ঀ-৿]/;
+const getJob = cache(getJobById);
 
 function bnStyle(text: string): CSSProperties | undefined {
-  return BENGALI_RX.test(text) ? { fontFamily: "var(--font-bengali)" } : undefined;
+  return isBengali(text) ? { fontFamily: "var(--font-bengali)" } : undefined;
 }
 
-function bnClass(text: string): string {
-  return BENGALI_RX.test(text) ? "font-bengali" : "";
-}
-
-function formatDate(d: Date | string | null | undefined): string | null {
-  if (!d) return null;
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function relative(d: Date | string | null | undefined): string | null {
-  if (!d) return null;
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (isNaN(date.getTime())) return null;
-  const diff = Date.now() - date.getTime();
-  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return formatDate(date);
-}
-
-function initials(name: string): string {
-  return name
-    .replace(/\(.*?\)/g, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const job = await getJob(id);
+  if (!job) return { title: "Job not found · Khoj" };
+  return {
+    title: `${job.title} — ${job.company} · Khoj`,
+    description:
+      job.description.slice(0, 160) ||
+      `${job.title} at ${job.company}${job.location ? `, ${job.location}` : ""}.`,
+  };
 }
 
 export default async function JobDetailPage({
@@ -53,35 +36,30 @@ export default async function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = await getJobById(id);
+  const job = await getJob(id);
   if (!job) notFound();
 
-  const typeMeta =
-    job.sourceType === "gov"
-      ? { label: "Government", accent: "var(--gov)", soft: "var(--gov-soft)" }
-      : job.sourceType === "international"
-      ? { label: "International", accent: "var(--intl)", soft: "var(--intl-soft)" }
-      : { label: "Private", accent: "var(--private)", soft: "var(--private-soft)" };
+  const typeMeta = TYPE_META[job.sourceType];
   const accent = typeMeta.accent;
   const accentSoft = typeMeta.soft;
-  const postedAgo = relative(job.postedAt) ?? relative(job.scrapedAt);
+  const postedAgo = relativeDate(job.postedAt) ?? relativeDate(job.scrapedAt);
   const deadline = formatDate(job.deadline);
-  const scrapedAgo = relative(job.scrapedAt);
+  const scrapedAgo = relativeDate(job.scrapedAt);
 
   return (
     <article className="mx-auto max-w-3xl px-5 py-10 sm:px-6">
       <Link
         href="/"
-        className="mb-8 inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-[var(--foreground-subtle)] transition hover:text-[var(--accent)]"
+        className="mb-8 inline-flex items-center gap-1 text-xs uppercase tracking-[0.18em] text-foreground-subtle transition hover:text-accent"
       >
         ← Back to listings
       </Link>
 
       <div
-        className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+        className="overflow-hidden rounded-lg border border-border bg-surface"
         style={{ borderLeft: `3px solid ${accent}` }}
       >
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--border)] px-6 py-3 text-[11px]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-6 py-3 text-[11px]">
           <span
             className="rounded-sm px-1.5 py-0.5 font-medium uppercase tracking-[0.18em]"
             style={{ background: accentSoft, color: accent }}
@@ -89,21 +67,21 @@ export default async function JobDetailPage({
             {typeMeta.label}
           </span>
           <span
-            className="rounded-sm border border-[var(--border)] px-1.5 py-0.5 uppercase tracking-[0.18em] text-[var(--foreground-muted)]"
+            className="rounded-sm border border-border px-1.5 py-0.5 uppercase tracking-[0.18em] text-foreground-muted"
           >
             {job.category.replace("-", " ")}
           </span>
-          <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[var(--foreground-subtle)]">
+          <span className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-foreground-subtle">
             {postedAgo && <span>Posted {postedAgo}</span>}
             {deadline && (
-              <span className="font-medium text-[var(--danger)]">Deadline {deadline}</span>
+              <span className="font-medium text-danger">Deadline {deadline}</span>
             )}
           </span>
         </div>
 
         <div className="px-6 pt-7 pb-6">
           <h1
-            className={`text-3xl leading-[1.15] tracking-tight text-[var(--foreground)] sm:text-4xl ${bnClass(job.title)}`}
+            className={`text-3xl leading-[1.15] tracking-tight text-foreground sm:text-4xl ${bnClass(job.title)}`}
             style={{ fontFamily: "var(--font-display)", ...bnStyle(job.title) }}
           >
             {job.title}
@@ -117,14 +95,14 @@ export default async function JobDetailPage({
             >
               {initials(job.company) || "·"}
             </div>
-            <div className="min-w-0 text-sm text-[var(--foreground-muted)]">
+            <div className="min-w-0 text-sm text-foreground-muted">
               <div
-                className={`font-medium text-[var(--foreground)] ${bnClass(job.company)}`}
+                className={`font-medium text-foreground ${bnClass(job.company)}`}
                 style={bnStyle(job.company)}
               >
                 {job.company}
               </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[var(--foreground-subtle)]">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-foreground-subtle">
                 {job.location && <span>{job.location}</span>}
                 {job.location && job.employmentType && <span>·</span>}
                 {job.employmentType && <span>{job.employmentType}</span>}
@@ -134,7 +112,7 @@ export default async function JobDetailPage({
 
           {job.description && (
             <div
-              className={`mt-7 whitespace-pre-wrap rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-5 text-[15px] leading-relaxed text-[var(--foreground)] ${bnClass(job.description)}`}
+              className={`mt-7 whitespace-pre-wrap rounded-md border border-border bg-surface-2 p-5 text-[15px] leading-relaxed text-foreground ${bnClass(job.description)}`}
               style={bnStyle(job.description)}
             >
               {job.description}
@@ -146,7 +124,7 @@ export default async function JobDetailPage({
               {job.rawTags.map((t) => (
                 <span
                   key={t}
-                  className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--foreground-muted)]"
+                  className="rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-foreground-muted"
                 >
                   {t}
                 </span>
@@ -159,14 +137,14 @@ export default async function JobDetailPage({
               href={job.applyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-[var(--foreground)] px-6 py-3 text-sm font-medium text-[var(--background)] transition hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background transition hover:opacity-90"
             >
               Apply on source ↗
             </a>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--border)] bg-[var(--surface-2)]/60 px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-[var(--foreground-subtle)]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-(--surface-2)/60 px-6 py-3 font-mono text-[10px] uppercase tracking-wider text-foreground-subtle">
           <span>src · {job.source}</span>
           {scrapedAgo && <span>scraped · {scrapedAgo}</span>}
         </div>

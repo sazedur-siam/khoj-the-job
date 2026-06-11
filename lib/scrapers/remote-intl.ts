@@ -1,6 +1,6 @@
 import { fetchText } from "./http";
 import { categorizeTitle } from "./filter-it";
-import type { NormalizedJob, ScrapeOutcome } from "./types";
+import type { ScrapeOutcome } from "./types";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();

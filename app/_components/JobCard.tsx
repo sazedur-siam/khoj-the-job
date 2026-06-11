@@ -1,53 +1,9 @@
-import type { WithId } from "mongodb";
-import type { JobDoc } from "@/lib/db/schemas";
+import type { JobCardData } from "@/lib/db/jobs";
+import { bnClass, formatDate, initials, relativeDate, TYPE_META } from "@/lib/format";
 
-function formatDate(d: Date | string | null | undefined): string | null {
-  if (!d) return null;
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function relative(d: Date | string | null | undefined): string | null {
-  if (!d) return null;
-  const date = typeof d === "string" ? new Date(d) : d;
-  if (isNaN(date.getTime())) return null;
-  const diff = Date.now() - date.getTime();
-  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-  if (days === 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return formatDate(date);
-}
-
-function initials(name: string): string {
-  return name
-    .replace(/\(.*?\)/g, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
-
-const BENGALI_RX = /[ঀ-৿]/;
-
-function maybeBn(text: string): string {
-  return BENGALI_RX.test(text) ? "font-bengali" : "";
-}
-
-const TYPE_META: Record<string, { label: string; accent: string; soft: string }> = {
-  gov: { label: "Government", accent: "var(--gov)", soft: "var(--gov-soft)" },
-  private: { label: "Private", accent: "var(--private)", soft: "var(--private-soft)" },
-  international: { label: "International", accent: "var(--intl)", soft: "var(--intl-soft)" },
-};
-
-export function JobCard({ job }: { job: WithId<JobDoc> }) {
-  const meta = TYPE_META[job.sourceType] ?? TYPE_META.private;
-  const posted = relative(job.postedAt) ?? relative(job.scrapedAt);
+export function JobCard({ job }: { job: JobCardData }) {
+  const meta = TYPE_META[job.sourceType];
+  const posted = relativeDate(job.postedAt) ?? relativeDate(job.scrapedAt);
   const deadline = formatDate(job.deadline);
   const accent = meta.accent;
   const accentSoft = meta.soft;
@@ -58,7 +14,7 @@ export function JobCard({ job }: { job: WithId<JobDoc> }) {
         href={job.applyUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] transition hover:border-[var(--border-strong)] hover:shadow-md"
+        className="block overflow-hidden rounded-lg border border-border bg-surface transition hover:border-border-strong hover:shadow-md"
       >
         <div
           className="absolute left-0 top-0 h-full w-1 transition group-hover:w-1.5"
@@ -80,20 +36,20 @@ export function JobCard({ job }: { job: WithId<JobDoc> }) {
               >
                 {meta.label}
               </span>
-              <span className="text-[10px] text-[var(--foreground-subtle)]">·</span>
-              <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--foreground-subtle)]">
+              <span className="text-[10px] text-foreground-subtle">·</span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-foreground-subtle">
                 {job.category.replace("-", " ")}
               </span>
             </div>
             <h3
-              className={`text-base font-medium leading-snug text-[var(--foreground)] group-hover:text-[var(--accent)] ${maybeBn(
+              className={`text-base font-medium leading-snug text-foreground group-hover:text-accent ${bnClass(
                 job.title
               )}`}
             >
               {job.title}
             </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--foreground-muted)]">
-              <span className={`font-medium ${maybeBn(job.company)}`}>{job.company}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground-muted">
+              <span className={`font-medium ${bnClass(job.company)}`}>{job.company}</span>
               {job.location && (
                 <span className="flex items-center gap-1">
                   <DotIcon /> {job.location}
@@ -106,10 +62,10 @@ export function JobCard({ job }: { job: WithId<JobDoc> }) {
               )}
             </div>
           </div>
-          <div className="hidden shrink-0 flex-col items-end gap-1 text-right text-[11px] text-[var(--foreground-subtle)] sm:flex">
+          <div className="hidden shrink-0 flex-col items-end gap-1 text-right text-[11px] text-foreground-subtle sm:flex">
             {posted && <span>{posted}</span>}
             {deadline && (
-              <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium text-[var(--danger)]">
+              <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium text-danger">
                 Deadline {deadline}
               </span>
             )}
@@ -119,7 +75,7 @@ export function JobCard({ job }: { job: WithId<JobDoc> }) {
             >
               {job.source}
             </span>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--accent)] opacity-0 transition group-hover:opacity-100">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-accent opacity-0 transition group-hover:opacity-100">
               Open ↗
             </span>
           </div>
