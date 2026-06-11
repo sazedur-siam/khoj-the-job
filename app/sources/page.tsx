@@ -6,7 +6,7 @@ import {
   PRIVATE_CRAWL_PATH,
 } from "@/lib/sources-catalog";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
   ok: { label: "OK", color: "var(--gov)", bg: "var(--gov-soft)" },

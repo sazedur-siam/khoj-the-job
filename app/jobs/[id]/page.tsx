@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { getJobById } from "@/lib/db/jobs";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const BENGALI_RX = /[ঀ-৿]/;
 

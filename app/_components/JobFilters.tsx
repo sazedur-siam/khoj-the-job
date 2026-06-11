@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { emitNavProgress } from "./NavProgress";
 
 const TYPE_FILTERS = [
   { label: "All", value: "" },
@@ -40,6 +41,10 @@ export function JobFilters() {
   const currentType = sp.get("type") ?? "";
   const currentCategory = sp.get("category") ?? "";
   const currentWithin = sp.get("within") ?? "";
+
+  useEffect(() => {
+    emitNavProgress(isPending);
+  }, [isPending]);
 
   function navigate(next: URLSearchParams) {
     next.delete("page");

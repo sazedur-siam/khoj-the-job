@@ -6,8 +6,7 @@ import { JobCard } from "./_components/JobCard";
 import { Pagination } from "./_components/Pagination";
 import { Hero } from "./_components/Hero";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 60;
 
 type SP = Record<string, string | string[] | undefined>;
 
@@ -90,9 +89,15 @@ export default async function HomePage({
                 >
                   {hasActiveFilters ? "Filtered listings" : "Latest listings"}
                 </h2>
-                {listing && (
+                {listing && listing.total > 0 && (
                   <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
-                    {listing.total.toLocaleString()} matching · sorted newest first
+                    Showing{" "}
+                    {((listing.page - 1) * listing.pageSize + 1).toLocaleString()}–
+                    {Math.min(
+                      listing.page * listing.pageSize,
+                      listing.total
+                    ).toLocaleString()}{" "}
+                    of {listing.total.toLocaleString()} · sorted newest first
                   </div>
                 )}
               </div>

@@ -1,23 +1,31 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { Poppins, Geist_Mono, Noto_Sans_Bengali } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import "./globals.css";
+import type { Metadata } from "next";
+import { Geist_Mono, Noto_Sans_Bengali, Poppins } from "next/font/google";
+import Link from "next/link";
+import { NavProgress } from "./_components/NavProgress";
 import { ThemeToggle } from "./_components/ThemeToggle";
+import "./globals.css";
 
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
+  preload: true,
 });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+});
 const notoBengali = Noto_Sans_Bengali({
   variable: "--font-bengali",
   subsets: ["bengali"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -45,6 +53,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <NavProgress />
         <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
             <Link href="/" className="group flex items-baseline gap-2">
