@@ -1,5 +1,5 @@
 {
   "env": {
-    "OTEL_RESOURCE_ATTRIBUTES": "project.name=,team.name=,client.name="
+    "OTEL_RESOURCE_ATTRIBUTES": "project.name=rnd,team.name=rnd,client.name=strativ-rnd"
   }
 }

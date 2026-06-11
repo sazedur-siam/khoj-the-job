@@ -1,65 +1,145 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { searchJobs, getJobStats } from "@/lib/db/jobs";
+import { JobCategory, SourceType } from "@/lib/db/schemas";
+import { JobFilters } from "./_components/JobFilters";
+import { JobCard } from "./_components/JobCard";
+import { Pagination } from "./_components/Pagination";
+import { Hero } from "./_components/Hero";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type SP = Record<string, string | string[] | undefined>;
+
+function pickString(sp: SP, key: string): string | undefined {
+  const v = sp[key];
+  if (Array.isArray(v)) return v[0];
+  return v;
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<SP>;
+}) {
+  const sp = await searchParams;
+  const q = pickString(sp, "q");
+  const typeRaw = pickString(sp, "type");
+  const categoryRaw = pickString(sp, "category");
+  const withinRaw = pickString(sp, "within");
+  const pageRaw = pickString(sp, "page");
+
+  const type =
+    typeRaw && SourceType.safeParse(typeRaw).success
+      ? (typeRaw as ReturnType<typeof SourceType.parse>)
+      : undefined;
+  const category =
+    categoryRaw && JobCategory.safeParse(categoryRaw).success
+      ? (categoryRaw as ReturnType<typeof JobCategory.parse>)
+      : undefined;
+  const within = withinRaw ? parseInt(withinRaw, 10) : undefined;
+  const withinDays = within && within > 0 ? within : undefined;
+  const page = Math.max(1, parseInt(pageRaw ?? "1", 10) || 1);
+
+  let listing: Awaited<ReturnType<typeof searchJobs>> | null = null;
+  let stats: Awaited<ReturnType<typeof getJobStats>> | null = null;
+  let error: string | null = null;
+  try {
+    [listing, stats] = await Promise.all([
+      searchJobs({ q, type, category, withinDays, page }),
+      getJobStats(),
+    ]);
+  } catch (e) {
+    error = (e as Error).message;
+  }
+
+  const flatParams: Record<string, string | undefined> = {
+    q,
+    type,
+    category,
+    within: withinDays ? String(withinDays) : undefined,
+  };
+
+  const hasActiveFilters = !!(q || type || category || withinDays);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      {stats && <Hero stats={stats} />}
+
+      <div className="mx-auto max-w-6xl px-5 py-8 sm:py-10">
+        <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-20 lg:self-start">
+            <div className="mb-3 text-[10px] uppercase tracking-[0.22em] text-[var(--foreground-subtle)]">
+              Refine
+            </div>
+            <Suspense
+              fallback={
+                <div className="h-48 animate-pulse rounded-md bg-[var(--surface-2)]" />
+              }
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <JobFilters />
+            </Suspense>
+          </aside>
+
+          <section>
+            <div className="mb-4 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-3">
+              <div>
+                <h2
+                  className="text-2xl tracking-tight text-[var(--foreground)] sm:text-3xl"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {hasActiveFilters ? "Filtered listings" : "Latest listings"}
+                </h2>
+                {listing && (
+                  <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--foreground-subtle)]">
+                    {listing.total.toLocaleString()} matching · sorted newest first
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/5 p-4 text-sm text-[var(--danger)]">
+                Could not load jobs: {error}
+              </div>
+            )}
+
+            {listing && listing.jobs.length === 0 && (
+              <div className="rounded-md border border-dashed border-[var(--border-strong)] bg-[var(--surface)] p-8 text-center">
+                <div
+                  className="mb-2 text-2xl tracking-tight text-[var(--foreground-muted)]"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Nothing here yet.
+                </div>
+                <div className="text-sm text-[var(--foreground-subtle)]">
+                  {hasActiveFilters
+                    ? "Try clearing filters, widening the date range, or searching for a broader role."
+                    : "The next scrape run will populate listings. Government circulars run nightly; private companies hourly."}
+                </div>
+              </div>
+            )}
+
+            {listing && listing.jobs.length > 0 && (
+              <>
+                <ul className="space-y-3">
+                  {listing.jobs.map((job) => (
+                    <JobCard key={job._id.toString()} job={job} />
+                  ))}
+                </ul>
+                <div className="mt-8">
+                  <Pagination
+                    page={listing.page}
+                    pageSize={listing.pageSize}
+                    total={listing.total}
+                    searchParams={flatParams}
+                  />
+                </div>
+              </>
+            )}
+          </section>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

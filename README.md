@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Khoj — IT Jobs in Bangladesh
 
-## Getting Started
+Public portal that aggregates IT / Software Engineering / Programmer job listings in Bangladesh from:
 
-First, run the development server:
+- **Government sources**: `alljobs.teletalk.com.bd`, BDJobs government category, and ministry sites (BPSC, MoPA, NTRCA, Bangladesh Bank).
+- **Private companies**: ~129 Bangladesh software firms (from `data/companies.csv`), via a generic careers-page crawler with Claude Haiku extraction.
+
+Built with Next.js 16 (App Router) + MongoDB Atlas + Vercel Cron.
+
+## Setup
+
+1. **Install deps**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Create `.env.local`** (copy from `.env.example`)
+
+   ```
+   MONGODB_URI=mongodb+srv://USER:PASS@cluster.mongodb.net/?retryWrites=true&w=majority
+   MONGODB_DB=khoj
+   ANTHROPIC_API_KEY=sk-ant-...
+   CRON_SECRET=change-me-to-a-long-random-string
+   ```
+
+   - `MONGODB_URI` — your MongoDB Atlas connection string.
+   - `ANTHROPIC_API_KEY` — used by the generic careers-page crawler.
+   - `CRON_SECRET` — required header for hitting `/api/cron/*` routes.
+
+3. **Seed company list**
+
+   ```bash
+   pnpm seed
+   ```
+
+   Reads `data/companies.csv` and upserts each row into the `companies` collection.
+
+4. **Run dev server**
+
+   ```bash
+   pnpm dev
+   ```
+
+   Open <http://localhost:3000>.
+
+## Running scrapers locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Government circulars + BDJobs gov + ministry sites
+curl -H "x-cron-secret: $CRON_SECRET" http://localhost:3000/api/cron/scrape-gov
+
+# One batch (15 companies) of the private career-page crawler
+curl -H "x-cron-secret: $CRON_SECRET" "http://localhost:3000/api/cron/scrape-companies?batch=0"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production cron schedule
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See `vercel.json`. Daily schedule:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `02:00 UTC` — government scrape.
+- `03:00 – 11:00 UTC` — company-careers crawler, one 15-company batch per hour (covers ~135 companies in 9 hours).
 
-## Learn More
+Vercel automatically sends `Authorization: Bearer $CRON_SECRET` to these routes.
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  page.tsx                   # job listings (server component)
+  jobs/[id]/page.tsx         # job detail
+  _components/               # JobFilters (client), JobCard, Pagination
+  api/
+    jobs/route.ts            # GET /api/jobs?q=&type=&category=&page=
+    jobs/[id]/route.ts       # GET /api/jobs/:id
+    cron/
+      scrape-gov/route.ts
+      scrape-companies/route.ts
+lib/
+  db/                        # mongo, schemas, jobs, companies, scrape-runs
+  scrapers/                  # teletalk, bdjobs-gov, ministry-sites, company-careers
+  cron-auth.ts
+  run-scrapers.ts            # outcome → DB persistence
+scripts/
+  seed-companies.ts          # tsx scripts/seed-companies.ts
+data/
+  companies.csv              # snapshot of the source Google Sheet
+vercel.json                  # cron schedule
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## MongoDB collections
 
-## Deploy on Vercel
+- `jobs` — `{ hash (unique), title, company, location, employmentType, category, description, applyUrl, postedAt, deadline, source, sourceUrl, sourceType, rawTags, scrapedAt, updatedAt }`
+- `companies` — `{ name (unique), website, linkedin, techStack, careersUrl, lastCrawledAt, lastCrawlStatus, lastCrawlError }`
+- `scrape_runs` — `{ source, startedAt, finishedAt, jobsFound, jobsNew, jobsUpdated, errors }`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Indexes (auto-created on first DB use): `jobs.hash` unique, `jobs.postedAt` desc, `jobs.{sourceType, category}`, text index on `jobs.{title, company, description}`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Filtering
+
+Every scraper applies `lib/scrapers/filter-it.ts` before storage, so only IT / Software / Programmer roles are persisted. Categories (`frontend`, `backend`, `devops`, `data`, `ai-ml`, …) are derived from the title.
+
+## Known limits
+
+- Vercel Hobby plan caps API routes at 60s. Company batches are sized at 15 to fit. Upgrade to Pro for larger batches or fewer cron entries.
+- BDJobs has anti-bot measures; if it starts returning blocks, narrow the user-agent or move that scraper to a separate worker.
+- The generic crawler depends on companies having a discoverable `/careers` style page. Companies with no public listings page get logged with `lastCrawlStatus = 'no-careers-page'`.
