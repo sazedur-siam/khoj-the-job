@@ -51,7 +51,7 @@ export interface SearchResult {
 }
 
 const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 500;
 
 export async function searchJobs(params: SearchParams): Promise<SearchResult> {
   const page = Math.max(1, Math.floor(params.page ?? 1));

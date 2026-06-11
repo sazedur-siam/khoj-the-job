@@ -1,4 +1,8 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect, useTransition, type MouseEvent } from "react";
+import { emitNavProgress } from "./NavProgress";
 
 export function Pagination({
   page,
@@ -11,6 +15,13 @@ export function Pagination({
   total: number;
   searchParams: Record<string, string | undefined>;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    emitNavProgress(isPending);
+  }, [isPending]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
 
@@ -25,6 +36,14 @@ export function Pagination({
     return qs ? `/?${qs}` : "/";
   }
 
+  function go(p: number) {
+    return (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      startTransition(() => router.push(href(p)));
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+  }
+
   const prev = Math.max(1, page - 1);
   const next = Math.min(totalPages, page + 1);
   const showNumbers = totalPages > 3;
@@ -33,7 +52,7 @@ export function Pagination({
   const baseBtn =
     "inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--foreground-muted)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]";
   const disabled =
-    "inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-transparent px-3.5 py-1.5 text-xs font-medium text-[var(--foreground-subtle)] opacity-50";
+    "inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-transparent px-3.5 py-1.5 text-xs font-medium text-[var(--foreground-subtle)] opacity-50 cursor-not-allowed";
   const numBtn =
     "inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 font-mono text-xs text-[var(--foreground-muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]";
   const numActive =
@@ -43,11 +62,12 @@ export function Pagination({
     <nav
       aria-label="Pagination"
       className="flex flex-col items-center justify-between gap-3 pt-4 sm:flex-row"
+      aria-busy={isPending}
     >
       {page > 1 ? (
-        <Link href={href(prev)} className={baseBtn} aria-label="Previous page">
+        <a href={href(prev)} onClick={go(prev)} className={baseBtn} aria-label="Previous page">
           <span aria-hidden className="mr-1">←</span> Previous
-        </Link>
+        </a>
       ) : (
         <span className={disabled} aria-disabled>
           <span aria-hidden className="mr-1">←</span> Previous
@@ -73,9 +93,9 @@ export function Pagination({
                       {n}
                     </span>
                   ) : (
-                    <Link href={href(n)} className={numBtn}>
+                    <a href={href(n)} onClick={go(n)} className={numBtn}>
                       {n}
-                    </Link>
+                    </a>
                   )}
                 </li>
               )
@@ -88,9 +108,9 @@ export function Pagination({
       </div>
 
       {page < totalPages ? (
-        <Link href={href(next)} className={baseBtn} aria-label="Next page">
+        <a href={href(next)} onClick={go(next)} className={baseBtn} aria-label="Next page">
           Next <span aria-hidden className="ml-1">→</span>
-        </Link>
+        </a>
       ) : (
         <span className={disabled} aria-disabled>
           Next <span aria-hidden className="ml-1">→</span>
