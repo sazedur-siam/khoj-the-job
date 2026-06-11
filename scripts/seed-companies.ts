@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "csv-parse/sync";
 import { upsertCompany, totalCompanyCount } from "../lib/db/companies";
+import { ensureIndexes } from "../lib/db/mongo";
 
 interface CsvRow {
   "#": string;
@@ -37,6 +38,7 @@ function splitTech(raw: string): string[] {
 }
 
 async function main() {
+  await ensureIndexes();
   const csvPath = resolve(process.cwd(), "data/companies.csv");
   const text = readFileSync(csvPath, "utf8");
   const rows = parse(text, { columns: true, skip_empty_lines: true, trim: true }) as CsvRow[];

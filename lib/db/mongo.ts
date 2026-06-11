@@ -21,7 +21,32 @@ async function connect(): Promise<CachedMongo> {
   return { client, db, indexesEnsured: false };
 }
 
-async function ensureIndexes(db: Db): Promise<void> {
+function getCached(): Promise<CachedMongo> {
+  if (!globalCache.__khojMongo) {
+    // Drop a failed connection promise so the next request retries instead of
+    // serving the cached rejection for the lifetime of the lambda.
+    globalCache.__khojMongo = connect().catch((e) => {
+      globalCache.__khojMongo = undefined;
+      throw e;
+    });
+  }
+  return globalCache.__khojMongo;
+}
+
+export async function getDb(): Promise<Db> {
+  return (await getCached()).db;
+}
+
+/**
+ * Creates/verifies all indexes (once per process). Only the write path —
+ * scrapers via persistOutcome, the seed script — calls this; readers must not
+ * pay index-creation round-trips on cold start.
+ */
+export async function ensureIndexes(): Promise<void> {
+  const cached = await getCached();
+  if (cached.indexesEnsured) return;
+  cached.indexesEnsured = true;
+  const db = cached.db;
   await Promise.all([
     db.collection("jobs").createIndex({ hash: 1 }, { unique: true }),
     db.collection("jobs").createIndex({ postedAt: -1 }),
@@ -33,16 +58,4 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("companies").createIndex({ name: 1 }, { unique: true }),
     db.collection("scrape_runs").createIndex({ startedAt: -1 }),
   ]);
-}
-
-export async function getDb(): Promise<Db> {
-  if (!globalCache.__khojMongo) {
-    globalCache.__khojMongo = connect();
-  }
-  const cached = await globalCache.__khojMongo;
-  if (!cached.indexesEnsured) {
-    cached.indexesEnsured = true;
-    await ensureIndexes(cached.db);
-  }
-  return cached.db;
 }

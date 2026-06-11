@@ -1,4 +1,7 @@
+import { revalidateTag } from "next/cache";
+import { JOBS_CACHE_TAG } from "./db/cached";
 import { upsertJob } from "./db/jobs";
+import { ensureIndexes } from "./db/mongo";
 import { recordScrapeRun } from "./db/scrape-runs";
 import type { ScrapeOutcome } from "./scrapers/types";
 
@@ -15,6 +18,7 @@ export async function persistOutcome(
   outcome: ScrapeOutcome,
   startedAt: Date
 ): Promise<PersistedSummary> {
+  await ensureIndexes();
   let inserted = 0;
   let updated = 0;
   let invalid = 0;
@@ -47,6 +51,13 @@ export async function persistOutcome(
     jobsUpdated: summary.jobsUpdated,
     errors: summary.errors,
   });
+
+  try {
+    revalidateTag(JOBS_CACHE_TAG, "max");
+  } catch {
+    // Only available inside a Next request context (cron routes); a plain
+    // script run has no cache to invalidate.
+  }
 
   return summary;
 }

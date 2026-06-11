@@ -31,11 +31,16 @@ Two independent halves share `lib/db/`:
 
 1. **Ingest (write path)**: `app/api/cron/*` routes (guarded by `lib/cron-auth.ts`) call scrapers in `lib/scrapers/` which return a `ScrapeOutcome` (`{ source, jobs: NormalizedJob[], errors }`). `lib/run-scrapers.ts#persistOutcome` validates each job against `NormalizedJobSchema` (zod), upserts by `hash` (sha1 of source + sourceUrl, see `lib/db/hash.ts`), and records a `scrape_runs` audit doc. The company crawler (`lib/scrapers/company-careers.ts`) discovers careers pages and uses Claude Haiku to extract postings; `lib/scrapers/filter-it.ts` decides whether a title is an IT job (English + Bengali regexes) and assigns the category.
 
-2. **Read path (UI + JSON API)**: pages call `lib/db/jobs.ts` directly; `/api/jobs` exposes the same search publicly. `lib/db/mongo.ts` caches the client promise on `globalThis` and ensures indexes once per process — always go through `getDb()`.
+2. **Read path (UI + JSON API)**: pages go through `lib/db/cached.ts`; `/api/jobs` calls `lib/db/jobs.ts` directly and exposes the same search publicly. `lib/db/mongo.ts` caches the client promise on `globalThis` — always go through `getDb()`. Index creation (`mongo.ts#ensureIndexes`) is **write-path only**: `persistOutcome` and the seed script call it; readers must never pay those round-trips on cold start.
 
 ### Listing-page data flow (deliberate design)
 
-The homepage (`app/page.tsx`) fetches up to 500 jobs in one query via `searchJobCards()` and paginates **client-side** in `JobsList` (instant page flips, no server round-trip). Two rules keep this cheap:
+Pages reading `searchParams` are dynamically rendered on every request (`export const revalidate` is inert for them — this caused 6s FCP/LCP once), so the homepage is built around two layers:
+
+- **Cross-request data cache** (`lib/db/cached.ts`): `getCachedListing` / `getCachedStats` / `getCachedCompanies` wrap the Mongo queries in `unstable_cache` (5-min TTL, keyed by filter args, tagged `JOBS_CACHE_TAG`). `persistOutcome` calls `revalidateTag(JOBS_CACHE_TAG, "max")` after every scrape, so the TTL is only a safety net. `unstable_cache` JSON-serializes hits — cached functions must return plain data (ISO strings, stringified ids), never `Date`/`ObjectId`.
+- **Streaming shell** (`app/page.tsx`): everything that awaits data lives in Suspense-wrapped async sections (`HeroSection`, `ListingSection`) with height-matched fallbacks (CLS is 0 — keep it that way). The shell paints immediately; never `await` a query at the page's top level.
+
+The listing fetches up to 500 jobs in one query and paginates **client-side** in `JobsList` (instant page flips, no server round-trip). Two rules keep this cheap:
 
 - `searchJobCards` applies `CARD_PROJECTION` so heavy fields (`description`, `rawTags`, …) never leave Mongo. Use it for any listing; `searchJobs` (full docs) is for the JSON API and detail views.
 - Only `JobCardData` (plain strings, ISO dates — produced by `serializeJobCards`) crosses the server→client component boundary. Client components must not import runtime values from `lib/db/*` (mongodb is server-only); `import type` is fine.
@@ -51,6 +56,6 @@ The homepage (`app/page.tsx`) fetches up to 500 jobs in one query via `searchJob
 
 ### Gotchas
 
-- `searchJobs` text search (`$text`) depends on the `jobs_text` index created in `mongo.ts#ensureIndexes`; index changes require dropping the old index in Atlas manually.
+- `searchJobs` text search (`$text`) depends on the `jobs_text` index created in `mongo.ts#ensureIndexes`; index changes require dropping the old index in Atlas manually. On a fresh database, indexes only exist after the first cron run or `npm run seed`.
 - `vercel.json` cron paths include the `?batch=N` query — adding companies beyond batch 8 × 15 requires new cron entries.
 - `app/jobs/[id]/page.tsx` is reachable but not linked from cards (cards link straight to `applyUrl`); it wraps `getJobById` in React `cache()` because `generateMetadata` and the page both call it.

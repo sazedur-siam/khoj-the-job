@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { listAllCompanies } from "@/lib/db/companies";
+import { getCachedCompanies, type CompanyRow } from "@/lib/db/cached";
 import {
   GOVERNMENT_SOURCES,
   INTERNATIONAL_SOURCES,
   PRIVATE_CRAWL_PATH,
 } from "@/lib/sources-catalog";
-
-export const revalidate = 300;
 
 const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
   ok: { label: "OK", color: "var(--gov)", bg: "var(--gov-soft)" },
@@ -82,7 +80,7 @@ export default async function SourcesPage({
   const tabRaw = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
   const tab: Tab = tabRaw === "companies" ? "companies" : "endpoints";
 
-  const companies = await listAllCompanies();
+  const companies = await getCachedCompanies();
   const withCareers = companies.filter((c) => c.careersUrl);
 
   return (
@@ -149,8 +147,6 @@ function TabLink({
     </Link>
   );
 }
-
-type CompanyRow = Awaited<ReturnType<typeof listAllCompanies>>[number];
 
 function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
   return (
@@ -226,7 +222,7 @@ function EndpointsTab({ careersUrls }: { careersUrls: CompanyRow[] }) {
           <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {careersUrls.map((c) => (
               <li
-                key={c._id.toString()}
+                key={c._id}
                 className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface p-3"
               >
                 <div className="min-w-0 flex-1">
@@ -252,7 +248,7 @@ function CompaniesTab({ companies }: { companies: CompanyRow[] }) {
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
         {companies.map((c) => (
           <li
-            key={c._id.toString()}
+            key={c._id}
             className="rounded-md border border-border bg-surface p-3"
           >
             <div className="truncate text-sm font-medium text-foreground" title={c.name}>
